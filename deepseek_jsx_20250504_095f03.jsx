@@ -1,197 +1,155 @@
-import React, { useState } from 'react';
-import './App.css';
+import React, { useState, useEffect, useRef } from 'react';
+import './Dashboard.css';
 
 const CKDashboard = () => {
-  const [currentSection, setCurrentSection] = useState('welcome-screen');
-  const [formData, setFormData] = useState({});
+  // State management
+  const [formData, setFormData] = useState({
+    age: '',
+    sex: '',
+    race: '',
+    hypertension: '',
+    diabetes: '',
+    duration: '0',
+    family_history: '',
+    family_diseases: [],
+    bmi: '',
+    smoking: '',
+    cardiovascular: '',
+    symptoms: []
+  });
+
   const [results, setResults] = useState(null);
-
-  const dashboardData = {
-    metadata: {
-      title: "Chronic Kidney Disease Prediction Tool",
-      description: "A tool to assess risk factors for chronic kidney disease (CKD) and provide personalized recommendations.",
-      version: "1.0",
-      created: "2023-11-15",
-      security: {
-        encryption: "AES-256",
-        data_collection: "Minimal personal identifiers",
-        compliance: "HIPAA-inspired standards"
-      }
-    },
-    color_scheme: {
-      primary: "#1a6fc9",
-      primary_dark: "#145da0",
-      secondary: "#27ae60",
-      warning: "#f39c12",
-      danger: "#e74c3c",
-      security: "#8e44ad"
-    },
-    // ... rest of your JSON data
+  const [showChatbot, setShowChatbot] = useState(false);
+  const chartRefs = {
+    riskLevel: useRef(null),
+    factors: useRef(null),
+    ageComparison: useRef(null)
   };
 
+  // Form handlers
   const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    const { name, value, type, checked } = e.target;
+    
+    if (type === 'checkbox') {
+      const newValue = checked 
+        ? [...formData[name], value]
+        : formData[name].filter(item => item !== value);
+      setFormData({...formData, [name]: newValue});
+    } else {
+      setFormData({...formData, [name]: value});
+    }
   };
 
-  const calculateRisk = () => {
+  const calculateRisk = (e) => {
+    e.preventDefault();
     // Implement your risk calculation logic here
-    const riskScore = 0; // Calculate based on formData
+    const riskScore = calculateRiskScore(formData);
     setResults({
       riskScore,
-      riskLevel: "low", // Calculate based on score
-      riskPercentage: "5%", // Calculate based on score
-      riskFactors: [] // Calculate based on form data
+      riskLevel: determineRiskLevel(riskScore),
+      riskPercentage: determineRiskPercentage(riskScore),
+      factors: identifyRiskFactors(formData, riskScore)
     });
-    setCurrentSection('result');
   };
 
-  const renderWelcomeScreen = () => (
-    <div className="welcome-screen">
-      <h1>{dashboardData.metadata.title}</h1>
-      <p>{dashboardData.metadata.description}</p>
-      
-      <div className="info-box">
-        <h3>Before You Begin</h3>
-        <ul>
-          <li>This assessment will ask about your medical history, family history, and lifestyle factors that may affect kidney health.</li>
-          <li>Have your health information ready, including any known conditions like diabetes or high blood pressure.</li>
-        </ul>
-      </div>
-      
-      <div className="privacy-section">
-        <h3>Data Security & Privacy</h3>
-        <ul>
-          <li>End-to-end encryption - All data is encrypted in transit and at rest</li>
-          <li>No personal identifiers - We don't store your name, address, or other direct identifiers</li>
-          <li>User-controlled sharing - You decide what information to share with healthcare providers</li>
-        </ul>
-        <p>All data transmissions are secured with AES-256 encryption</p>
-      </div>
-      
-      <button 
-        className="primary-btn"
-        onClick={() => setCurrentSection('assessment-form')}
-      >
-        Begin Assessment
-      </button>
-    </div>
-  );
+  // Chart effects
+  useEffect(() => {
+    if (results && chartRefs.riskLevel.current) {
+      renderRiskLevelChart();
+      renderFactorsChart();
+      renderAgeComparisonChart();
+    }
+  }, [results]);
 
-  const renderAssessmentForm = () => (
-    <div className="assessment-form">
-      <h2>Patient Information</h2>
-      
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        calculateRisk();
-      }}>
-        <div className="form-section">
-          <h3>Demographics</h3>
-          <div className="form-group">
-            <label htmlFor="age">Age (years)</label>
-            <input 
-              type="number" 
-              id="age" 
-              min="18" 
-              max="120" 
-              required 
-              value={formData.age || ''}
-              onChange={handleInputChange}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="sex">Sex</label>
-            <select 
-              id="sex" 
-              required
-              value={formData.sex || ''}
-              onChange={handleInputChange}
-            >
-              <option value="">Select...</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          
-          {/* Add more form fields similarly */}
-        </div>
-        
-        <div className="form-section">
-          <h3>Medical History</h3>
-          {/* Add medical history fields */}
-        </div>
-        
-        <div className="form-section">
-          <h3>Symptoms</h3>
-          {/* Add symptoms checkboxes */}
-        </div>
-        
-        <button type="submit" className="primary-btn">
-          Calculate My CKD Risk
-        </button>
-      </form>
-    </div>
-  );
+  // Component structure
+  return (
+    <div className="dashboard">
+      <header>
+        <h1>Chronic Kidney Disease Prediction Tool</h1>
+        <p>Assess your risk factors for developing chronic kidney disease</p>
+      </header>
 
-  const renderResults = () => (
-    <div className="results-section">
-      <h2>Your CKD Risk Assessment Results</h2>
-      
-      {results && (
+      {!results ? (
+        <AssessmentForm 
+          formData={formData} 
+          onChange={handleInputChange} 
+          onSubmit={calculateRisk} 
+        />
+      ) : (
         <>
-          <div className="risk-summary">
-            <h3>Risk Summary</h3>
-            <p>Risk Score: {results.riskScore}</p>
-            <p>Risk Level: {results.riskLevel}</p>
-            <p>5-Year Risk Probability: {results.riskPercentage}</p>
-          </div>
-          
-          <div className="info-box">
-            <h3>Understanding Your Results</h3>
-            <p>This assessment is based on established risk factors for chronic kidney disease including age, diabetes, hypertension, family history, and other clinical factors.</p>
-            <p>Note: This tool cannot diagnose CKD. Only blood tests (eGFR) and urine tests (ACR) can confirm kidney disease.</p>
-          </div>
+          <ResultsSection results={results} formData={formData} />
+          <Visualizations results={results} chartRefs={chartRefs} />
+          <button onClick={() => setResults(null)}>New Assessment</button>
         </>
       )}
-      
-      <button 
-        className="secondary-btn"
-        onClick={() => {
-          setCurrentSection('welcome-screen');
-          setFormData({});
-          setResults(null);
-        }}
-      >
-        Start New Assessment
-      </button>
-    </div>
-  );
 
-  return (
-    <div className="ckd-dashboard">
-      <header>
-        <h1>{dashboardData.metadata.title}</h1>
-        <p className="version">Version {dashboardData.metadata.version}</p>
-      </header>
-      
-      <main>
-        {currentSection === 'welcome-screen' && renderWelcomeScreen()}
-        {currentSection === 'assessment-form' && renderAssessmentForm()}
-        {currentSection === 'result' && renderResults()}
-      </main>
-      
-      <footer>
-        <p>Disclaimer: This tool is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.</p>
-        <div className="footer-links">
-          <a href="#privacy">Privacy Policy</a>
-          <a href="#terms">Terms of Service</a>
-          <a href="#contact">Contact Us</a>
-        </div>
-      </footer>
+      <Chatbot show={showChatbot} toggle={() => setShowChatbot(!showChatbot)} />
+      <Footer />
     </div>
   );
+};
+
+// Sub-components
+const AssessmentForm = ({ formData, onChange, onSubmit }) => (
+  <section className="form-section">
+    <h2>Patient Information</h2>
+    <form onSubmit={onSubmit}>
+      {/* Form fields */}
+      <div className="form-group">
+        <label>Age (years):</label>
+        <input 
+          type="number" 
+          name="age" 
+          value={formData.age}
+          onChange={onChange}
+          min="18" 
+          max="120" 
+          required 
+        />
+      </div>
+      
+      {/* Add all other form fields similarly */}
+      
+      <button type="submit">Calculate My CKD Risk</button>
+    </form>
+  </section>
+);
+
+const ResultsSection = ({ results }) => (
+  <section className="results-section">
+    <h2>Your CKD Risk Assessment Results</h2>
+    <div className="risk-message">
+      <p>Your calculated CKD risk score: <strong>{results.riskScore}/20</strong></p>
+      <p>Risk level: <span className={`risk-${results.riskLevel}`}>
+        {results.riskLevel.toUpperCase()}
+      </span></p>
+      <p>Estimated 5-year risk: {results.riskPercentage}</p>
+    </div>
+    
+    <RiskFactors factors={results.factors} />
+    <Recommendations riskLevel={results.riskLevel} />
+  </section>
+);
+
+const Visualizations = ({ results, chartRefs }) => (
+  <section className="visualizations">
+    <h2>Your Risk Visualizations</h2>
+    <div className="chart-grid">
+      <div className="chart-container">
+        <canvas ref={chartRefs.riskLevel}></canvas>
+      </div>
+      <div className="chart-container">
+        <canvas ref={chartRefs.factors}></canvas>
+      </div>
+    </div>
+  </section>
+);
+
+// Helper functions
+const calculateRiskScore = (formData) => {
+  let score = 0;
+  // Implement your scoring logic
+  return score;
 };
 
 export default CKDashboard;
