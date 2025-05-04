@@ -18,7 +18,6 @@ const CKDashboard = () => {
   });
 
   const [results, setResults] = useState(null);
-  const [showChatbot, setShowChatbot] = useState(false);
   const chartRefs = {
     riskLevel: useRef(null),
     factors: useRef(null)
@@ -26,11 +25,10 @@ const CKDashboard = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-
     if (type === 'checkbox') {
       const newValue = checked
         ? [...formData[name], value]
-        : formData[name].filter(item => item !== value);
+        : formData[name].filter((item) => item !== value);
       setFormData({ ...formData, [name]: newValue });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -57,10 +55,8 @@ const CKDashboard = () => {
 
   return (
     <div className="dashboard">
-      <header>
-        <h1>Chronic Kidney Disease Prediction Tool</h1>
-        <p>Assess your risk factors for developing chronic kidney disease</p>
-      </header>
+      <h2>Chronic Kidney Disease Prediction Tool</h2>
+      <p>Assess your risk factors for developing chronic kidney disease</p>
 
       {!results ? (
         <AssessmentForm
@@ -72,6 +68,8 @@ const CKDashboard = () => {
         <>
           <ResultsSection results={results} />
           <Visualizations results={results} chartRefs={chartRefs} />
+          <RiskFactors factors={results.factors} />
+          <Recommendations riskLevel={results.riskLevel} />
           <button onClick={() => setResults(null)}>New Assessment</button>
         </>
       )}
@@ -82,54 +80,77 @@ const CKDashboard = () => {
 };
 
 const AssessmentForm = ({ formData, onChange, onSubmit }) => (
-  <section className="form-section">
-    <h2>Patient Information</h2>
-    <form onSubmit={onSubmit}>
-      <div className="form-group">
-        <label>Age (years):</label>
-        <input
-          type="number"
-          name="age"
-          value={formData.age}
-          onChange={onChange}
-          min="18"
-          max="120"
-          required
-        />
-      </div>
-      {/* Add more input fields here as needed */}
-      <button type="submit">Calculate My CKD Risk</button>
-    </form>
-  </section>
+  <form onSubmit={onSubmit}>
+    <h3>Patient Information</h3>
+    <label>
+      Age (years):
+      <input
+        type="number"
+        name="age"
+        value={formData.age}
+        onChange={onChange}
+      />
+    </label>
+    <br />
+    <label>
+      Hypertension:
+      <select name="hypertension" value={formData.hypertension} onChange={onChange}>
+        <option value="">Select</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+    <br />
+    <label>
+      Diabetes:
+      <select name="diabetes" value={formData.diabetes} onChange={onChange}>
+        <option value="">Select</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+    <br />
+    <label>
+      Smoking:
+      <select name="smoking" value={formData.smoking} onChange={onChange}>
+        <option value="">Select</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+    <br />
+    <label>
+      Family History of Kidney Disease:
+      <select
+        name="family_history"
+        value={formData.family_history}
+        onChange={onChange}
+      >
+        <option value="">Select</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+    <br />
+    <button type="submit">Calculate My CKD Risk</button>
+  </form>
 );
 
 const ResultsSection = ({ results }) => (
-  <section className="results-section">
-    <h2>Your CKD Risk Assessment Results</h2>
-    <div className="risk-message">
-      <p>Your calculated CKD risk score: <strong>{results.riskScore}/20</strong></p>
-      <p>Risk level: <span className={`risk-${results.riskLevel}`}>
-        {results.riskLevel.toUpperCase()}
-      </span></p>
-      <p>Estimated 5-year risk: {results.riskPercentage}</p>
-    </div>
-    <RiskFactors factors={results.factors} />
-    <Recommendations riskLevel={results.riskLevel} />
-  </section>
+  <div>
+    <h3>Your CKD Risk Assessment Results</h3>
+    <p>Your calculated CKD risk score: {results.riskScore}/20</p>
+    <p>Risk level: <strong>{results.riskLevel.toUpperCase()}</strong></p>
+    <p>Estimated 5-year risk: {results.riskPercentage}</p>
+  </div>
 );
 
 const Visualizations = ({ results, chartRefs }) => (
-  <section className="visualizations">
-    <h2>Your Risk Visualizations</h2>
-    <div className="chart-grid">
-      <div className="chart-container">
-        <canvas ref={chartRefs.riskLevel}></canvas>
-      </div>
-      <div className="chart-container">
-        <canvas ref={chartRefs.factors}></canvas>
-      </div>
-    </div>
-  </section>
+  <div>
+    <h3>Your Risk Visualizations</h3>
+    <canvas ref={chartRefs.riskLevel}></canvas>
+    <canvas ref={chartRefs.factors}></canvas>
+  </div>
 );
 
 const RiskFactors = ({ factors }) => (
@@ -148,19 +169,21 @@ const Recommendations = ({ riskLevel }) => (
     <h3>Recommendations</h3>
     <p>
       {riskLevel === 'high' && 'Consult a nephrologist immediately.'}
-      {riskLevel === 'moderate' && 'Consider lifestyle and diet changes, monitor kidney function.'}
-      {riskLevel === 'low' && 'Maintain a healthy lifestyle to keep your kidneys strong.'}
+      {riskLevel === 'moderate' &&
+        'Consider lifestyle and diet changes, monitor kidney function.'}
+      {riskLevel === 'low' &&
+        'Maintain a healthy lifestyle to keep your kidneys strong.'}
     </p>
   </div>
 );
 
 const Footer = () => (
   <footer>
-    <p>&copy; 2025 CKD Risk Tool | Built for educational use</p>
+    <p>© 2025 CKD Risk Tool | Built for educational use</p>
   </footer>
 );
 
-// Dummy logic for calculation – customize as needed
+// Scoring logic
 const calculateRiskScore = (formData) => {
   let score = 0;
   if (parseInt(formData.age) > 50) score += 3;
@@ -185,17 +208,17 @@ const determineRiskPercentage = (score) => {
 
 const identifyRiskFactors = (formData, score) => {
   const factors = [];
-  if (parseInt(formData.age) > 50) factors.push("Age > 50");
-  if (formData.hypertension === 'yes') factors.push("Hypertension");
-  if (formData.diabetes === 'yes') factors.push("Diabetes");
-  if (formData.family_history === 'yes') factors.push("Family History");
-  if (formData.smoking === 'yes') factors.push("Smoking");
+  if (parseInt(formData.age) > 50) factors.push('Age > 50');
+  if (formData.hypertension === 'yes') factors.push('Hypertension');
+  if (formData.diabetes === 'yes') factors.push('Diabetes');
+  if (formData.family_history === 'yes') factors.push('Family History');
+  if (formData.smoking === 'yes') factors.push('Smoking');
   return factors;
 };
 
 // Dummy chart rendering
 const renderRiskLevelChart = () => {
-  const ctx = document.querySelector('canvas').getContext('2d');
+  const ctx = document.querySelectorAll('canvas')[0].getContext('2d');
   ctx.fillStyle = '#f00';
   ctx.fillRect(10, 10, 100, 100);
 };
